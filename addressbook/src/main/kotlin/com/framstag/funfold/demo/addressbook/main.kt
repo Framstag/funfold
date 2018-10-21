@@ -177,7 +177,8 @@ fun main(args: Array<String>) {
         )
 
         val jdbcProcessor1 =
-            JDBCEventProcessor(eventStore,
+            JDBCEventProcessor(eventDispatcher,
+                eventStore,
                 bucketDistributor1,
                 bucketStateStore)
 
@@ -191,7 +192,8 @@ fun main(args: Array<String>) {
         )
 
         val jdbcProcessor2 =
-            JDBCEventProcessor(eventStore,
+            JDBCEventProcessor(eventDispatcher,
+                eventStore,
                 bucketDistributor2,
                 bucketStateStore)
 
