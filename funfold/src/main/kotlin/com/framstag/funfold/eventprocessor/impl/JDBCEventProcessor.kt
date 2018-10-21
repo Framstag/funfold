@@ -32,7 +32,7 @@ class JDBCEventProcessor(
         }
 
         var minSerial: Long? = null
-        if (bucketLastSerial.values.isEmpty()) {
+        if (!bucketLastSerial.values.isEmpty()) {
             minSerial = bucketLastSerial.values.reduce { acc, l ->
                 if (acc != null && l != null) {
                     Math.min(acc,l)
