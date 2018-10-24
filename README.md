@@ -49,3 +49,14 @@ If you are interested, participate. Note that the project is likely
 more about discussing the "right code" first and then supply an
 implementation than actually supplying the
 "right code" immediately.
+
+# The name...
+
+To quote the current code:
+
+```kotlin
+aggregateInstance = events.fold(aggregateInstance) {
+...
+```
+
+CQRS/ES framework use the (left) fold method (`fun fold()` in kotlin) to build up the current aggregate instance state from past events. The double meaning of `fun` in this context of course was too good to ignore :-)
