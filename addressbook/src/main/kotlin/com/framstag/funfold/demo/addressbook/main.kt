@@ -15,6 +15,7 @@ import com.framstag.funfold.jdbc.impl.JavaSEConnectionProvider
 import com.framstag.funfold.transaction.JavaSETransactionManager
 import com.framstag.funfold.transaction.TransactionManager
 import com.framstag.funfold.demo.addressbook.serialisation.JsonSerializer
+import com.framstag.funfold.serialisation.Serializer
 import mu.KotlinLogging
 import org.h2.jdbcx.JdbcDataSource
 import java.util.*
@@ -26,10 +27,9 @@ fun getInMemoryEventStore(): EventStore {
     return InMemoryEventStore()
 }
 
-fun getJDBCEventStore(transactionManager: TransactionManager): EventStore {
+fun getJDBCEventStore(transactionManager: TransactionManager, serializer: Serializer): EventStore {
     val datasource = JdbcDataSource()
     val connectionProvider = JavaSEConnectionProvider(datasource)
-    val serializer = JsonSerializer()
 
     datasource.setUrl("jdbc:h2:mem:myDb;DB_CLOSE_DELAY=-1")
     datasource.user = "sa"
@@ -54,9 +54,11 @@ fun main(args: Array<String>) {
     // Transaction handling
     val transactionManager = JavaSETransactionManager()
 
+    val serializer = JsonSerializer()
+
     // Event store
     //val eventStore = getInMemoryEventStore()
-    val eventStore = getJDBCEventStore(transactionManager)
+    val eventStore = getJDBCEventStore(transactionManager,serializer)
 
     // EventSourcing
     val eventSourcedProcessor = EventSourceProcessor(eventStore)
@@ -177,7 +179,8 @@ fun main(args: Array<String>) {
         )
 
         val jdbcProcessor1 =
-            JDBCEventProcessor(eventDispatcher,
+            JDBCEventProcessor(transactionManager,
+                eventDispatcher,
                 eventStore,
                 bucketDistributor1,
                 bucketStateStore)
@@ -192,7 +195,8 @@ fun main(args: Array<String>) {
         )
 
         val jdbcProcessor2 =
-            JDBCEventProcessor(eventDispatcher,
+            JDBCEventProcessor(transactionManager,
+                eventDispatcher,
                 eventStore,
                 bucketDistributor2,
                 bucketStateStore)

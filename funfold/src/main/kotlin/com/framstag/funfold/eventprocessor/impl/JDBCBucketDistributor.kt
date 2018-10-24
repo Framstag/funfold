@@ -77,7 +77,6 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
         val bucket: Int
     )
 
-    private val processStart = System.currentTimeMillis()
     private var nextFinishTime: Long = System.currentTimeMillis()
     private var timeDrift: Long = 0
     private var myBuckets: List<Int> = listOf()
@@ -283,11 +282,11 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
             it.bucket
         })
 
-        val ourCurrentBucketIds = currentBuckets.filter {
+        val ourCurrentBucketIds = currentBuckets.asSequence().filter {
             it.instanceId == instanceId
         }.map {
             it.bucket
-        }
+        }.toList()
 
         var processableBuckets: List<Int> = ourCurrentBucketIds.plus(unallocatedBucketIds)
 
@@ -324,46 +323,63 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
 
         return myBuckets.toList()
     }
-    
+
+    private fun refreshBuckets() {
+        logger.info("Refreshing...")
+
+        // Own transaction to allow fail
+        transactionManager.execute {
+            deleteOldProcessorInstances()
+        }
+
+        transactionManager.execute {
+            timeDrift = getTimeDrift()
+            assertTimeDrift(timeDrift)
+        }
+
+        lateinit var processors : List<BucketProcessor>
+        lateinit var myProcessorInstance : BucketProcessor
+        lateinit var buckets : List<Bucket>
+
+        var myBucketShare = 0
+
+        transactionManager.execute {
+            processors = getActiveProcessorInstances()
+            myProcessorInstance = updateMyProcessorInDatabase(processors)
+            buckets = getActiveBuckets()
+
+            nextFinishTime = myProcessorInstance.finishTime.time
+
+            myBucketShare = getMyShareOfBuckets(processors, bucketCount)
+        }
+
+        // TODO: Allocate each bucket in its own transaction, this way processors starting
+        // at the same time may have interleaved allocation
+        transactionManager.execute {
+            myBuckets = updateBucketAllocation(myProcessorInstance, buckets, myBucketShare, bucketCount)
+
+            logger.info("Allocated buckets: $myBuckets")
+        }
+
+        logger.info("Refreshing...done")
+    }
+
+    override fun getBucket(hash: Int): Int {
+        // We extend the hash code to long to make sure, that we do not get negative
+        // bucket numbers - which we obviously can get for int the way the hash code is build
+        val bigHash = hash.toLong()-Int.MIN_VALUE;
+        return bigHash.rem(bucketCount).toInt()
+    }
+
+    override fun shouldProcess(bucket:Int): Boolean {
+        val buckets = getBuckets()
+
+        return buckets.contains(bucket)
+    }
+
     override fun getBuckets(): List<Int> {
-        if (shouldRefresh(processStart)) {
-            logger.info("Refreshing...")
-
-            // Own transaction to allow fail
-            transactionManager.execute {
-                deleteOldProcessorInstances()
-            }
-
-            transactionManager.execute {
-                timeDrift = getTimeDrift()
-                assertTimeDrift(timeDrift)
-            }
-
-            lateinit var processors : List<BucketProcessor>
-            lateinit var myProcessorInstance : BucketProcessor
-            lateinit var buckets : List<Bucket>
-
-            var myBucketShare = 0
-
-            transactionManager.execute {
-                processors = getActiveProcessorInstances()
-                myProcessorInstance = updateMyProcessorInDatabase(processors)
-                buckets = getActiveBuckets()
-
-                nextFinishTime = myProcessorInstance.finishTime.time
-
-                myBucketShare = getMyShareOfBuckets(processors, bucketCount)
-            }
-
-            // TODO: Allocate each bucket in its own transaction, this way processors starting
-            // at the same time may have interleaved allocation
-            transactionManager.execute {
-                myBuckets = updateBucketAllocation(myProcessorInstance, buckets, myBucketShare, bucketCount)
-
-                logger.info("Allocated buckets: $myBuckets")
-            }
-
-            logger.info("Refreshing...done")
+        if (shouldRefresh(System.currentTimeMillis())) {
+            refreshBuckets()
         }
 
         return myBuckets

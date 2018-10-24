@@ -47,6 +47,53 @@ class EventSourceProcessor(private val eventStore: EventStore) {
         return aggregateData
     }
 
+    private fun <A : Aggregate, C : Command, CR : CommandResponse> commandHandler(
+        handler: EventSourcedCommandHandler<A, C, CR>,
+        aggregateClass: Class<A>,
+        aggregateData: AggregateData,
+        command: C
+    ): CompletableFuture<CR> {
+        val processingData = handler.getAggregateInfo(command)
+        val aggregateId = processingData.aggregateId
+        val events = eventStore.loadEvents(aggregateClass, aggregateId)
+        val currentVersion = getCurrentVersion(events)
+        val newVersion = currentVersion + 1
+
+        var aggregateInstance = aggregateData.aggregateFactory!!.invoke()
+
+        aggregateInstance = events.fold(aggregateInstance) { aggregate, storedEvent ->
+            val eventName = storedEvent.event::class.java.name
+            val aggregateHandler = aggregateData.handlerMap[eventName]
+
+            if (aggregateHandler == null) {
+                throw Exception("No handler for event $eventName registered")
+            }
+
+            aggregateHandler(aggregate, storedEvent.event)
+        }
+
+        val commandContext = CommandContext(aggregateId, newVersion)
+
+        @Suppress("UNCHECKED_CAST")
+        val commandResponse = handler.execute(aggregateInstance as A, command, commandContext)
+
+        if (commandContext.event == null) {
+            throw Exception("Command ${command::class.java.name} did not generate an event")
+        }
+
+        val event = commandContext.event!!
+        val eventData = ProducedEventData(
+            aggregateClass.name,
+            aggregateId,
+            newVersion,
+            event
+        )
+
+        eventStore.saveEvent(eventData)
+
+        return commandResponse
+    }
+
     fun <A : Aggregate> registerAggregateFactory(
         aggregate: Class<A>,
         aggregateFactory: AggregateFactory<A>
@@ -76,7 +123,7 @@ class EventSourceProcessor(private val eventStore: EventStore) {
     fun <A : Aggregate, C : Command, CR : CommandResponse> wrap(
         aggregateClass: Class<A>,
         handler: EventSourcedCommandHandler<A, C, CR>
-    ): CommandHandler<C,CR> {
+    ): CommandHandler<C, CR> {
         val aggregateName = aggregateClass.name
         val aggregateData = getAggregateData(aggregateName)
 
@@ -84,46 +131,8 @@ class EventSourceProcessor(private val eventStore: EventStore) {
             throw Exception("No factory for aggregate $aggregateName registered")
         }
 
-        return fun (command: C): CompletableFuture<CR> {
-            val processingData = handler.getAggregateInfo(command)
-            val aggregateId = processingData.aggregateId
-            val events = eventStore.loadEvents(aggregateClass, aggregateId)
-            val currentVersion = getCurrentVersion(events)
-            val newVersion = currentVersion + 1
-
-            var aggregateInstance = aggregateData.aggregateFactory!!.invoke()
-
-            aggregateInstance = events.fold(aggregateInstance) { aggregate, storedEvent ->
-                val eventName = storedEvent.event::class.java.name
-                val aggregateHandler = aggregateData.handlerMap[eventName]
-
-                if (aggregateHandler == null) {
-                    throw Exception("No handler for event $eventName registered")
-                }
-
-                aggregateHandler(aggregate, storedEvent.event)
-            }
-
-            val commandContext = CommandContext(aggregateId, newVersion)
-
-            @Suppress("UNCHECKED_CAST")
-            val commandResponse = handler.execute(aggregateInstance as A, command, commandContext)
-
-            if (commandContext.event == null) {
-                throw Exception("Command ${command::class.java.name} did not generate an event")
-            }
-
-            val event = commandContext.event!!
-            val eventData = ProducedEventData(
-                aggregateClass.name,
-                aggregateId,
-                newVersion,
-                event
-            )
-
-            eventStore.saveEvent(eventData)
-
-            return commandResponse
+        return fun(command: C): CompletableFuture<CR> {
+            return commandHandler(handler, aggregateClass, aggregateData, command)
         }
     }
 }

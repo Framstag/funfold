@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture
 /**
  * Interface for all event sourced command handlers to implement.
  *
- * TODO: We would like al handlers to be simple functions, thus we have to extract getAggregateInfo..
+ * TODO: We would like al handlers to be simple functions, thus we have to extract getAggregateInfo().
  */
 interface EventSourcedCommandHandler<in A : Aggregate, in C : Command, CR : CommandResponse> {
     fun getAggregateInfo(command: C): AggregateInfo
