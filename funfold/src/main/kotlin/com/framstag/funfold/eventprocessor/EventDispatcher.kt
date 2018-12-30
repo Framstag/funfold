@@ -16,9 +16,9 @@ import mu.KLogging
  * CommandDispatcher and EventDispatcher have similar purpose, structure and implementation.
  */
 class EventDispatcher {
-    companion object : KLogging() {
-        var handlerMap: MutableMap<String, EventHandler<Event>> = mutableMapOf()
-    }
+    companion object : KLogging()
+
+    private var handlerMap: MutableMap<String, EventHandler<Event>> = mutableMapOf()
 
     private fun getHandler(eventName : String) : EventHandler<Event>? {
         @Suppress("UNCHECKED_CAST")
@@ -29,7 +29,7 @@ class EventDispatcher {
         event: Class<E>,
         eventHandler: EventHandler<E>
     ) {
-        val existingHandler = handlerMap[event.name]
+        val existingHandler = handlerMap.get(event.name)
 
         if (existingHandler != null) {
             throw ReconfigurationException("Event ${event.name} already has a handler")
