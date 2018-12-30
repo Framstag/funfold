@@ -7,7 +7,7 @@ import mu.KLogging
 
 /**
  * The event dispatcher has an internal registry of event handler for events. Based on the given configuration
- * is dispatches events to the corresponding event handler - if it exists.
+ * it dispatches events to the corresponding event handler - if it exists.
  *
  * CommandDispatcher and EventDispatcher have similar purpose.
  *

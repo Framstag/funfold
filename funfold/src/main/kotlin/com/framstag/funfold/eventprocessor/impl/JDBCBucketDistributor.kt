@@ -61,7 +61,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
             """DELETE FROM Processor_Buckets pb WHERE pb.processorId=? AND pb.instanceId=? AND pb.bucket=?"""
     }
 
-    data class BucketProcessor(
+    private data class BucketProcessor(
         val processorId: String,
         val instanceId: String,
         val creationTime: Timestamp,
@@ -69,7 +69,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
         val buckets: Int
     )
 
-    data class Bucket(
+    private data class Bucket(
         val processorId: String,
         val instanceId: String,
         val creationTime: Timestamp,
@@ -245,6 +245,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
     }
 
     private fun shouldRefresh(currentTime: Long):Boolean {
+        // 80%
         return currentTime>nextFinishTime-(refreshTime*1000*20)/100
     }
 
@@ -367,7 +368,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
     override fun getBucket(hash: Int): Int {
         // We extend the hash code to long to make sure, that we do not get negative
         // bucket numbers - which we obviously can get for int the way the hash code is build
-        val bigHash = hash.toLong()-Int.MIN_VALUE;
+        val bigHash = hash.toLong()-Int.MIN_VALUE
         return bigHash.rem(bucketCount).toInt()
     }
 
