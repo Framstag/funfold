@@ -1,6 +1,5 @@
 package com.framstag.funfold.eventprocessor.impl
 
-import com.framstag.funfold.cqrs.Aggregate
 import com.framstag.funfold.cqrs.Event
 import com.framstag.funfold.eventprocessor.BucketDistributor
 import com.framstag.funfold.eventprocessor.BucketStateStore
@@ -66,8 +65,6 @@ class JDBCEventProcessor(
         val storedEvents = loadPotentialNewEvents()
 
         storedEvents.forEach {
-            @Suppress("UNCHECKED_CAST")
-            val aggregateClass = Class.forName(it.aggregateName) as Class<Aggregate>
 
             transactionManager.execute {
                 val bucket = bucketDistributor.getBucket(it.hash)
@@ -78,7 +75,7 @@ class JDBCEventProcessor(
 
                     if (lastSerial == null || it.serial>lastSerial) {
                         logger.info("Dispatching event ${it.event}")
-                        dispatcher.dispatch(aggregateClass, it.event)
+                        dispatcher.dispatch(it.event)
 
                         logger.info("Updating bucket $bucket to serial ${it.serial}")
                         bucketStateStore.storeBucketState(bucket,lastSerial,it.serial)

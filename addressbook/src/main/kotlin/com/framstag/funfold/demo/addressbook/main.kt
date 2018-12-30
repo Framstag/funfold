@@ -144,12 +144,10 @@ fun main(args: Array<String>) {
     val eventDispatcher = EventDispatcher()
 
     eventDispatcher.registerEventHandler(
-        Person::class.java,
         PersonCreatedEvent::class.java,
         ::onPersonCreatedEventHandler
     )
     eventDispatcher.registerEventHandler(
-        Person::class.java,
         PersonMarriedEvent::class.java,
         ::onPersonMarriedEventHandler
     )
