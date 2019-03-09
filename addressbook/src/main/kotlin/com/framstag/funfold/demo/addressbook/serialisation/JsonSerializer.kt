@@ -11,7 +11,7 @@ class JsonSerializer: Serializer {
     }
 
     override fun <A> fromString(value: String, targetClassName: String): A {
-        val parser = Parser()
+        val parser = Parser.default()
 
         val jsonObject = parser.parse(StringBuilder(value)) as JsonObject
 
