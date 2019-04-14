@@ -20,7 +20,7 @@ import com.framstag.funfold.annotation.PotentialIO
  * It though should assure that in normal conditions (no errors) events are only processed once by one processor
  * instance.
  *
- * A bucket distributor assumes that aggregates (and thus events) can get cleanly distributed over multiple buckets
+ * A bucket distributor assumes that aggregates (and thus events) can get cleanly distributed over multiple partitions
  * using some hashing (normally of the aggregate id). It is the work of a bukcet distributor instance to
  * to the liveness probing and work load distribution using some central heuristic measurements.
  *
@@ -33,7 +33,7 @@ interface BucketDistributor {
     fun getBucket(hash: Int):Int
 
     /**
-     * Return the list of buckets to be processed by the current process
+     * Return the list of partitions to be processed by the current process
      */
     @PotentialIO
     fun getBuckets():List<Int>

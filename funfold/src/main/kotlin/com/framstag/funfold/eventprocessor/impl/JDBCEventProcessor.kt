@@ -53,7 +53,7 @@ class JDBCEventProcessor(
 
             logger.info("Loading events starting with serial $serial")
 
-            storedEvents = eventStore.loadEvents(serial)
+            storedEvents = eventStore.loadEvents(serial,50)
 
             logger.info("Found ${storedEvents.size} events")
         }

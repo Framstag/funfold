@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture
  * * calls your event sourced command handler with the resulting aggregate
  * * stores the resulting event
  *
- * TODO: Currently onyl one resulting event is allowed
+ * TODO: Currently only one resulting event is allowed
  */
 class EventSourceProcessor(private val eventStore: EventStore) {
     class AggregateData {

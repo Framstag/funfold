@@ -28,7 +28,7 @@ class InMemoryEventStoreTest {
         val producedEvent = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             event
         )
 
@@ -41,7 +41,7 @@ class InMemoryEventStoreTest {
         val producedEvent1 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            1,
+            2,
             TestEvent("data")
         )
 
@@ -56,7 +56,7 @@ class InMemoryEventStoreTest {
         val producedEvent1 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             TestEvent("data")
         )
 
@@ -65,7 +65,7 @@ class InMemoryEventStoreTest {
         val producedEvent2 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             TestEvent("data")
         )
 
@@ -80,7 +80,7 @@ class InMemoryEventStoreTest {
         val producedEvent1 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             TestEvent("data")
         )
 
@@ -89,7 +89,7 @@ class InMemoryEventStoreTest {
         val producedEvent2 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            2,
+            3,
             TestEvent("data")
         )
 
@@ -105,13 +105,13 @@ class InMemoryEventStoreTest {
         val producedEvent = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             event
         )
 
         eventStore.saveEvent(producedEvent)
 
-        val loadedEvents = eventStore.loadEvents(0)
+        val loadedEvents = eventStore.loadEvents(0,50)
 
         assertEquals(1, loadedEvents.size)
         assertEquals(0L, loadedEvents.first().serial)
@@ -132,7 +132,7 @@ class InMemoryEventStoreTest {
         val producedEvent = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             event
         )
 
@@ -160,7 +160,7 @@ class InMemoryEventStoreTest {
         val producedEvent1 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             event1
         )
 
@@ -170,7 +170,7 @@ class InMemoryEventStoreTest {
         val producedEvent2 = ProducedEventData(
             AnotherTestAggregate::class.java.name,
             "2",
-            0,
+            1,
             event2
         )
 
@@ -192,7 +192,7 @@ class InMemoryEventStoreTest {
         val producedEvent = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             event
         )
 
@@ -220,7 +220,7 @@ class InMemoryEventStoreTest {
         val producedEvent1 = ProducedEventData(
             TestAggregate::class.java.name,
             "1",
-            0,
+            1,
             event1
         )
 
@@ -230,7 +230,7 @@ class InMemoryEventStoreTest {
         val producedEvent2 = ProducedEventData(
             AnotherTestAggregate::class.java.name,
             "2",
-            0,
+            1,
             event2
         )
 

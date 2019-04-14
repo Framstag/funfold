@@ -47,11 +47,13 @@ class InMemoryEventStore : EventStore {
         }
     }
 
-    override fun loadEvents(minSerial: Long): List<StoredEventData<Event>> {
+    override fun loadEvents(minSerial: Long, count: Int): List<StoredEventData<Event>> {
         lock.readLock().withLock {
-            return eventList.filter {
-                it.serial >= minSerial
-            }
+            return eventList
+                .filter {
+                    it.serial >= minSerial
+                }
+                .take(count)
         }
     }
 
@@ -67,8 +69,8 @@ class InMemoryEventStore : EventStore {
                 }
             }
             else {
-                if (eventData.version != 0L) {
-                    throw ConcurrencyViolationException("No event in store, event version ${eventData.version} (and thus != 0)")
+                if (eventData.version != 1L) {
+                    throw ConcurrencyViolationException("No event in store, event version ${eventData.version} (and thus != 1)")
                 }
             }
 

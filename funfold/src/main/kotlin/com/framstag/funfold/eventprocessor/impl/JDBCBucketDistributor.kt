@@ -32,7 +32,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
             "DELETE FROM Processors p WHERE NOT EXISTS (SELECT 1 FROM Processor_Buckets pb WHERE pb.processorId=p.processorId AND pb.instanceId=p.instanceId) AND p.processorId=? AND p.finishTime<CURRENT_TIMESTAMP()"
 
         private const val SELECT_CURRENT_PROCESSORS =
-            "SELECT p.processorId, p.instanceId, p.creationTime, p.finishTime, p.buckets FROM Processors p WHERE p.processorId = ? AND p.creationTime<=CURRENT_TIMESTAMP() AND p.finishTime>CURRENT_TIMESTAMP()"
+            "SELECT p.processorId, p.instanceId, p.creationTime, p.finishTime, p.partitions FROM Processors p WHERE p.processorId = ? AND p.creationTime<=CURRENT_TIMESTAMP() AND p.finishTime>CURRENT_TIMESTAMP()"
 
         private const val SELECT_CURRENT_BUCKETS =
             "SELECT pb.processorId, pb.instanceId, pb.creationTime, pb.finishTime, pb.bucket FROM Processor_Buckets pb WHERE pb.processorId = ? AND pb.creationTime<=CURRENT_TIMESTAMP() AND pb.finishTime>CURRENT_TIMESTAMP()"
@@ -42,7 +42,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
                 instanceId,
                 creationTime,
                 finishTime,
-                buckets) VALUES (?,?,CURRENT_TIMESTAMP(),DATEADD('SECOND',?,CURRENT_TIMESTAMP()),?)"""
+                partitions) VALUES (?,?,CURRENT_TIMESTAMP(),DATEADD('SECOND',?,CURRENT_TIMESTAMP()),?)"""
 
         private const val UPDATE_PROCESSOR =
             """UPDATE Processors p SET creationTime=CURRENT_TIMESTAMP(),finishTime=DATEADD('SECOND',?,CURRENT_TIMESTAMP()) WHERE p.processorId=? AND p.instanceId=?"""
@@ -132,7 +132,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
             DELETE_OLD_BUCKETS, processorId
         )
 
-        logger.info("Deleted $deleteCountBuckets old processor buckets")
+        logger.info("Deleted $deleteCountBuckets old processor partitions")
 
         val deleteCountProcessors = connection.executeDelete(
             DELETE_OLD_PROCESSORS,processorId)
@@ -158,7 +158,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
 
         val buckets = connection.executeSelect(SELECT_CURRENT_BUCKETS,::resultToBucket,processorId)
 
-        logger.info("Found ${buckets.size} buckets:")
+        logger.info("Found ${buckets.size} partitions:")
         buckets.forEach {
             logger.info("* $it")
         }
@@ -270,7 +270,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
 
         val myBucketShare = bucketCount / totalProcessorInstances
 
-        logger.info("We should hold maximum $myBucketShare of $bucketCount buckets ($totalProcessorInstances processor instances)")
+        logger.info("We should hold maximum $myBucketShare of $bucketCount partitions ($totalProcessorInstances processor instances)")
 
         return myBucketShare
     }
@@ -359,7 +359,7 @@ class JDBCBucketDistributor(private val transactionManager: TransactionManager,
         transactionManager.execute {
             myBuckets = updateBucketAllocation(myProcessorInstance, buckets, myBucketShare, bucketCount)
 
-            logger.info("Allocated buckets: $myBuckets")
+            logger.info("Allocated partitions: $myBuckets")
         }
 
         logger.info("Refreshing...done")

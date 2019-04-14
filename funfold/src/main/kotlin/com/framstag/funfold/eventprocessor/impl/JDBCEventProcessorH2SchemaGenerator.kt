@@ -12,7 +12,7 @@ class JDBCEventProcessorH2SchemaGenerator(private val connectionProvider: Connec
                     instanceId varchar(255) NOT NULL,
                     creationTime timestamp NOT NULL,
                     finishTime timestamp NOT NULL,
-                    buckets int NOT NULL,
+                    partitions int NOT NULL,
                     PRIMARY KEY (processorId,instanceId))"""
 
         const val CREATE_TABLE_PROCESSOR_BUCKETS =

@@ -41,7 +41,7 @@ class InMemoryEventProcessor(
             logger.info("Loadings events starting with serial $serial...")
 
             @Suppress("UNCHECKED_CAST")
-            val events = eventStore.loadEvents(serial)
+            val events = eventStore.loadEvents(serial,50)
 
             for (event in events) {
                 transactionManager.execute {

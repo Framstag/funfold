@@ -23,7 +23,7 @@ class JdbcEventStore(
         const val SELECT_BY_AGGREGATE_AND_MIN_SERIAL =
             "SELECT e.serial, e.aggregateName, e.aggregateId, e.hash, e.version, e.eventClass, event FROM Events e WHERE e.aggregateName = ? AND e.serial>=?"
         const val SELECT_BY_MIN_SERIAL =
-            "SELECT e.serial, e.aggregateName, e.aggregateId, e.hash, e.version, e.eventClass, event FROM Events e WHERE e.serial>=?"
+            "SELECT e.serial, e.aggregateName, e.aggregateId, e.hash, e.version, e.eventClass, event FROM Events e WHERE e.serial>=? ORDER BY e.serial ASC LIMIT ?"
     }
 
     private fun <A : Aggregate> loadEventsInternal(aggregate: Class<A>, aggregateId: String): List<StoredEventData<Event>> {
@@ -105,7 +105,7 @@ class JdbcEventStore(
         }
     }
 
-    private fun loadEventsInternal(minSerial: Long): List<StoredEventData<Event>> {
+    private fun loadEventsInternal(minSerial: Long, count: Int): List<StoredEventData<Event>> {
         val connection = connectionProvider.getConnection()
         val resultList = mutableListOf<StoredEventData<Event>>()
 
@@ -113,6 +113,7 @@ class JdbcEventStore(
 
         statement.use {
             statement.setLong(1, minSerial)
+            statement.setInt(2,count)
 
             val result = statement.executeQuery()
 
@@ -155,10 +156,10 @@ class JdbcEventStore(
         return loadEventsInternal(aggregate, minSerial)
     }
 
-    override fun loadEvents(minSerial: Long): List<StoredEventData<Event>> {
+    override fun loadEvents(minSerial: Long, count: Int): List<StoredEventData<Event>> {
         logger.info("Load all events starting from $minSerial")
 
-        return loadEventsInternal(minSerial)
+        return loadEventsInternal(minSerial, count)
     }
 
     private fun <E: Event>saveEventInternal(serializer : Serializer, eventData: ProducedEventData<E>) {

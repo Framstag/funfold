@@ -37,7 +37,7 @@ interface EventStore {
     fun <A : Aggregate> loadEvents(aggregate: Class<A>, minSerial: Long): List<StoredEventData<Event>>
 
     @PotentialIO
-    fun loadEvents(minSerial: Long): List<StoredEventData<Event>>
+    fun loadEvents(minSerial: Long, count: Int): List<StoredEventData<Event>>
 
     @PotentialIO
     fun <E : Event> saveEvent(eventData: ProducedEventData<E>)

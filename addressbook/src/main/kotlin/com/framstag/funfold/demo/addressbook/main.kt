@@ -15,11 +15,13 @@ import com.framstag.funfold.jdbc.impl.JavaSEConnectionProvider
 import com.framstag.funfold.transaction.JavaSETransactionManager
 import com.framstag.funfold.transaction.TransactionManager
 import com.framstag.funfold.demo.addressbook.serialisation.JsonSerializer
+import com.framstag.funfold.eventprocessor.EventProcessorDescription
+import com.framstag.funfold.eventprocessor.EventProcessorInstanceId
+import com.framstag.funfold.eventprocessor.EventProcessorRegistry
 import com.framstag.funfold.serialisation.Serializer
 import mu.KotlinLogging
 import org.h2.jdbcx.JdbcDataSource
 import java.util.*
-import kotlin.concurrent.thread
 
 val logger = KotlinLogging.logger("main")
 
@@ -50,15 +52,15 @@ fun getJDBCEventStore(transactionManager: TransactionManager, serializer: Serial
     return JdbcEventStore(connectionProvider, serializer)
 }
 
-fun main(args: Array<String>) {
+fun main() {
     // Transaction handling
     val transactionManager = JavaSETransactionManager()
 
     val serializer = JsonSerializer()
 
     // Event store
-    //val eventStore = getInMemoryEventStore()
-    val eventStore = getJDBCEventStore(transactionManager,serializer)
+    val eventStore = getInMemoryEventStore()
+    //val eventStore = getJDBCEventStore(transactionManager,serializer)
 
     // EventSourcing
     val eventSourcedProcessor = EventSourceProcessor(eventStore)
@@ -152,8 +154,40 @@ fun main(args: Array<String>) {
         ::onPersonMarriedEventHandler
     )
 
+    /* ----- */
+
+    val eventProcessorStore = InMemoryEventProcessorStore()
+    val eventProcessorRegistry = EventProcessorRegistry(eventProcessorStore)
+    val partitionStore = InMemoryPartitionPositionStore()
+
+    val processorName = "Test"
+    val processorPartitions = 20
+    val processor1Description = EventProcessorDescription(EventProcessorInstanceId(processorName,"1"),processorPartitions)
+    val processor2Description = EventProcessorDescription(EventProcessorInstanceId(processorName,"2"),processorPartitions)
+
+    eventProcessorRegistry.start()
+    eventProcessorRegistry.registerProcessor(processor1Description)
+    eventProcessorRegistry.registerProcessor(processor2Description)
+
+    // Give the asynchronous registry some time...
+    Thread.sleep(1000)
+
+    logger.info("Partitions: ${eventProcessorRegistry.getPartitions()}")
+
+    val eventProcessingService = SimpleEventProcessingService(eventStore,eventProcessorRegistry,partitionStore)
+
+    eventProcessingService.registerEventProcessorInstance(processor1Description,eventDispatcher)
+    eventProcessingService.registerEventProcessorInstance(processor2Description,eventDispatcher)
+
+    eventProcessingService.start()
+
+    Thread.sleep(10000)
+
+    eventProcessingService.stop()
+
     // BucketProcessor
 
+    /*
     if (eventStore is JdbcEventStore) {
        logger.info("Defining jdbc processor...")
 
@@ -243,5 +277,7 @@ fun main(args: Array<String>) {
         }
 
         logger.info("Starting processor in loop...done")
-    }
+    }*/
+
+    eventProcessorRegistry.stop()
 }
